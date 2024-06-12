@@ -39,7 +39,7 @@ def generate_inference_data(
                         prompt_list=prompt,
                         response=response,
                     )
-
+                    
                 model_response = model.create_response(prompt)
                 response = model_response["content"]
                 (status, modified_response) = response_processor.process_response(
@@ -79,14 +79,25 @@ def sanitize_log_name(filename):
     return filename.replace(" ", "_").replace(":", "_").replace("-", "_")
 
 
+def parse_arguments():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="config.yaml")
+    parser.add_argument("--total", type=int, default=-1)
+    parser.add_argument("--calculate_cost", type=bool, default=True)
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    args = parse_arguments()
+
     logging.basicConfig(
         filename=sanitize_log_name(f"./logs/data_generation_{datetime.now()}.log"),
         level=logging.INFO,
     )
-    # with open("hf_token.txt", "r") as f:
-    #     token = f.read().strip("\n")
-    data_handler = DataHandler("config.yaml")
+
+    data_handler = DataHandler(args.config)
     message_creator = ChatGptMessageCreator()
     response_processor = ResponseProcessor()
     logger.info(f"Model name: {data_handler.get_model_name()}")
@@ -97,8 +108,8 @@ if __name__ == "__main__":
         prompt_creator=message_creator,
         model=model,
         response_processor=response_processor,
-        total=-1,
-        calcualate_cost=True,
+        total=args.total,
+        calcualate_cost=args.calculate_cost,
     )
 
     logger.info("Data generation finished")
