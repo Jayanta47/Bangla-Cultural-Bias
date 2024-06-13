@@ -3,3 +3,5 @@ DataGeneration/hf_token.txt
 DataGeneration/logs/*
 */__pycache__/
 DataGeneration/.env
+DataProcessor/logs/*
+DataProcessor/*.csv
