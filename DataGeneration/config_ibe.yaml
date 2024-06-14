@@ -1,4 +1,4 @@
-model: meta-llama/Meta-Llama-3-8B
+model: meta-llama/Meta-Llama-3-8B-Instruct
 prompt_data_path: ../Data/ibe_data.csv
 storage_path: ../Data/ibe_response.csv
 template_version: ibe
