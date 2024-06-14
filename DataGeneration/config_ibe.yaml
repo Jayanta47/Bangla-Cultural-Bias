@@ -1,5 +1,5 @@
-model: gpt-4o
-prompt_data_path: /home/jayanta/Documents/Bangla_R&N_Bias_Detection/Data/IBE_data/ibe_data.csv
-storage_path: /home/jayanta/Documents/Bangla_R&N_Bias_Detection/Data/IBE_response/4/ibe_response.csv
+model: meta-llama/Meta-Llama-3-8B
+prompt_data_path: ../Data/ibe_data.csv
+storage_path: ../Data/ibe_response.csv
 template_version: ibe
 response_processor_version: ibe

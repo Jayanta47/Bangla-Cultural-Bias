@@ -1,5 +1,0 @@
-model: gpt-3.5-turbo
-prompt_data_path: /home/jayanta/Documents/Bangla_R&N_Bias_Detection/Data/religion_prompts.csv
-storage_folder_path: ../Data/Storage_3.5_religion/
-template_version: base
-response_processor_version: base

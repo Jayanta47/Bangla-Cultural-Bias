@@ -1,6 +1,6 @@
 from data_handler import *
 from prompt_creator import *
-from chatgpt import *
+from Llama3 import *
 from datetime import datetime
 from tqdm import tqdm
 from response_processor import *
@@ -85,7 +85,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="config.yaml")
     parser.add_argument("--total", type=int, default=-1)
-    parser.add_argument("--calculate_cost", type=bool, default=True)
+    parser.add_argument("--calculate_cost", type=bool, default=False)
     parser.add_argument("--datahandler", type=str, default="data_handler")
     return parser.parse_args()
 
@@ -97,7 +97,11 @@ if __name__ == "__main__":
         filename=sanitize_log_name(f"./logs/data_generation_{datetime.now()}.log"),
         level=logging.INFO,
     )
-    if args.datahandler == "data_handler":
+
+    with open("./hf_token.txt", "r") as f:
+        token = f.read().strip()
+
+    if args.datahandler == "base":
         data_handler = DataHandler(args.config)
         logger.info(f"Template Based Data Handler")
     elif args.datahandler == "ibe":
@@ -124,7 +128,8 @@ if __name__ == "__main__":
         raise ValueError("Invalid response_processor_version")
 
     logger.info(f"Model name: {data_handler.get_model_name()}")
-    model = ChatgptModel(model_name=data_handler.get_model_name())
+    model = Llama3(model_name=data_handler.get_model_name(), device="cuda:0", token=token)
+    model.activate_model()
     logger.info("Data generation started")
     generate_inference_data(
         data_handler=data_handler,
@@ -132,7 +137,6 @@ if __name__ == "__main__":
         model=model,
         response_processor=response_processor,
         total=args.total,
-        calcualate_cost=args.calculate_cost,
     )
 
     logger.info("Data generation finished")

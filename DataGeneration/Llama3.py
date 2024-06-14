@@ -48,7 +48,7 @@ class Llama3(Model):
         top_p=0.9,
         top_k=40,
         num_beams=4,
-        max_new_tokens=128,
+        max_new_tokens=32,
         **kwargs,
     ):
         input_ids = self.tokenizer.apply_chat_template(
