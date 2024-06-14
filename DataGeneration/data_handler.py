@@ -23,6 +23,10 @@ class DataHandlerBase(ABC):
         pass
 
     @abstractmethod
+    def get_config_data(self, key):
+        pass
+
+    @abstractmethod
     def save_generated_data(self, content, index, filepath=None):
         pass
 
@@ -44,7 +48,7 @@ class DataHandler(DataHandlerBase):
     def __is_datapoint_eligible(self, index):
         # skip if the response already exists
         model_name = sanitize_model_name(self.config["model"])
-        
+
         response_file_path = os.path.join(
             self.config["storage_folder_path"],
             str(index),
@@ -66,6 +70,9 @@ class DataHandler(DataHandlerBase):
 
     def get_model_name(self):
         return self.config["model"]
+
+    def get_config_data(self, key):
+        return self.config[key]
 
     def return_data_point(self, total=-1):
         valid_data_points = self.__create_valid_data_points()
@@ -89,13 +96,9 @@ class DataHandler(DataHandlerBase):
         # If filepath is not provided, generate a default filepath
         if filepath is None:
             # Generate the filename based on the persona, model name and index
-            filename = (
-                f"{sanitize_model_name(self.config['model'])}_response.txt"
-            )
+            filename = f"{sanitize_model_name(self.config['model'])}_response.txt"
             # Generate the folder path based on the index
-            folder_path = os.path.join(
-                self.config["storage_folder_path"], str(index)
-            )
+            folder_path = os.path.join(self.config["storage_folder_path"], str(index))
             # Create the folder if it doesn't exist
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
@@ -116,12 +119,159 @@ class DataHandler(DataHandlerBase):
             pass  # Skip the operation if an error occurs
 
 
+class DataHandlerEBE(DataHandlerBase):
+    def __init__(self, config_file_path):
+        self.config_file_path = config_file_path
+        self.__read_config_file()
+
+    def __read_config_file(self):
+        with open(self.config_file_path, "r") as f:
+            self.config = yaml.safe_load(f)
+
+    def __read_prompts_df(self):
+        if os.path.exists(self.config["storage_path"]):
+            prompt_df = pd.read_csv(self.config["storage_path"])
+        else:
+            os.makedirs(os.path.dirname(self.config["storage_path"]), exist_ok=True)
+            prompt_df = pd.read_csv(self.config["prompt_data_path"])
+        print(f"\nSelected data points length: {len(prompt_df)}")
+        return prompt_df
+
+    def __create_valid_data_points(self):
+        prompt_df = self.__read_prompts_df()
+        prompt_df_valid = prompt_df[prompt_df["response"].isna()]
+        print("Valid Data Points: ", len(prompt_df_valid))
+        logger.info(f"Starting from index: {prompt_df_valid['ID'].iloc[0]}\n\n")
+        return prompt_df_valid.to_dict(orient="records")
+
+    def get_model_name(self):
+        return self.config["model"]
+
+    def get_config_data(self, key):
+        return self.config[key]
+
+    def return_data_point(self, total=-1):
+        valid_data_points = self.__create_valid_data_points()
+
+        for i, data_point in enumerate(valid_data_points):
+            yield data_point
+            if i == total - 1:
+                break
+
+    def save_generated_data(self, content, index):
+        """
+        Save generated data to the 'response' field in the CSV file.
+
+        Args:
+            content (str): The content to be saved.
+            index (int): The index of the data point.
+        """
+        # Read the current CSV file
+        if os.path.exists(self.config["storage_path"]):
+            prompt_df = pd.read_csv(self.config["storage_path"])
+        else:
+            prompt_df = pd.read_csv(self.config["prompt_data_path"])
+
+        # Ensure the index is within the DataFrame bounds
+        if index < 0 or index >= len(prompt_df):
+            logger.error(
+                f"Index {index} is out of bounds for the DataFrame with length {len(prompt_df)}"
+            )
+            return
+
+        # Update the 'response' field for the specific index
+        try:
+            prompt_df.at[index, "response"] = str(content)
+
+            # Save the updated DataFrame back to the CSV file
+            prompt_df.to_csv(self.config["storage_path"], index=False)
+            logger.info(f"Content saved to 'response' field in CSV at index {index}\n")
+        except Exception as e:
+            # Log any errors that occur during the updating operation
+            logger.error(f"Error occurred while updating the CSV file: {e}\n")
+            pass  # Skip the operation if an error occurs
+
+
+class DataHandlerIBE(DataHandlerBase):
+    def __init__(self, config_file_path):
+        self.config_file_path = config_file_path
+        self.__read_config_file()
+
+    def __read_config_file(self):
+        with open(self.config_file_path, "r") as f:
+            self.config = yaml.safe_load(f)
+
+    def __read_prompts_df(self):
+        if os.path.exists(self.config["storage_path"]):
+            prompt_df = pd.read_csv(self.config["storage_path"])
+        else:
+            os.makedirs(os.path.dirname(self.config["storage_path"]), exist_ok=True)
+            prompt_df = pd.read_csv(self.config["prompt_data_path"])
+        print(f"\nSelected data points length: {len(prompt_df)}")
+        return prompt_df
+
+    def __create_valid_data_points(self):
+        prompt_df = self.__read_prompts_df()
+
+        prompt_df_valid = prompt_df[prompt_df["response"].isna()]
+        print("Valid Data Points: ", len(prompt_df_valid))
+        logger.info(f"Starting from index: {prompt_df_valid['ID'].iloc[0]}\n\n")
+        return prompt_df_valid.to_dict(orient="records")
+
+    def get_model_name(self):
+        return self.config["model"]
+
+    def get_config_data(self, key):
+        return self.config[key]
+
+    def return_data_point(self, total=-1):
+        valid_data_points = self.__create_valid_data_points()
+
+        for i, data_point in enumerate(valid_data_points):
+            yield data_point
+            if i == total - 1:
+                break
+
+    def save_generated_data(self, content, index):
+        """
+        Save generated data to the 'response' field in the CSV file.
+
+        Args:
+            content (str): The content to be saved.
+            index (int): The index of the data point.
+        """
+        # Read the current CSV file
+        if os.path.exists(self.config["storage_path"]):
+            prompt_df = pd.read_csv(self.config["storage_path"])
+        else:
+            prompt_df = pd.read_csv(self.config["prompt_data_path"])
+
+        # Ensure the index is within the DataFrame bounds
+        if index < 0 or index >= len(prompt_df):
+            logger.error(
+                f"Index {index} is out of bounds for the DataFrame with length {len(prompt_df)}"
+            )
+            return
+
+        # Update the 'response' field for the specific index
+        try:
+            prompt_df.at[index, "response"] = str(content)
+
+            # Save the updated DataFrame back to the CSV file
+            prompt_df.to_csv(self.config["storage_path"], index=False)
+            logger.info(f"Content saved to 'response' field in CSV at index {index}\n")
+        except Exception as e:
+            # Log any errors that occur during the updating operation
+            logger.error(f"Error occurred while updating the CSV file: {e}\n")
+            pass  # Skip the operation if an error occurs
+
+
 if __name__ == "__main__":
-    data_handler = DataHandler("config.yaml")
+    data_handler = DataHandlerEBE("config_ebe.yaml")
 
     print(data_handler.get_model_name())
     datapoints = data_handler.return_data_point(1)
     for data in datapoints:
         print(data)
 
-    data_handler.save_generated_data("abcd", 0)
+        data_handler.save_generated_data("abcd", data["ID"])

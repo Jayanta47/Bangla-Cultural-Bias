@@ -32,14 +32,14 @@ def generate_inference_data(
                 logger.info("Iteration: " + str(iteration))
                 if iteration == 0:
                     prompt = prompt_creator.create_prompt(
-                        prompt=data_point["text"],
+                        prompt=data_point["prompt"],
                     )
                 else:
                     prompt = prompt_creator.refine_prompt(
                         prompt_list=prompt,
                         response=response,
                     )
-                    
+
                 model_response = model.create_response(prompt)
                 response = model_response["content"]
                 (status, modified_response) = response_processor.process_response(
@@ -86,6 +86,7 @@ def parse_arguments():
     parser.add_argument("--config", type=str, default="config.yaml")
     parser.add_argument("--total", type=int, default=-1)
     parser.add_argument("--calculate_cost", type=bool, default=True)
+    parser.add_argument("--datahandler", type=str, default="data_handler")
     return parser.parse_args()
 
 
@@ -96,10 +97,32 @@ if __name__ == "__main__":
         filename=sanitize_log_name(f"./logs/data_generation_{datetime.now()}.log"),
         level=logging.INFO,
     )
+    if args.datahandler == "data_handler":
+        data_handler = DataHandler(args.config)
+        logger.info(f"Template Based Data Handler")
+    elif args.datahandler == "ibe":
+        data_handler = DataHandlerIBE(args.config)
+        logger.info(f"IBE Based Data Handler")
+    else:
+        data_handler = DataHandlerEBE(args.config)
+        logger.info(f"EBE Based Data Handler")
 
-    data_handler = DataHandler(args.config)
-    message_creator = ChatGptMessageCreator()
-    response_processor = ResponseProcessor()
+    template_version = data_handler.get_config_data("template_version")
+    message_creator = ChatGptMessageCreator(version=template_version)
+
+    response_processor_version = data_handler.get_config_data(
+        "response_processor_version"
+    )
+
+    if response_processor_version == "base":
+        response_processor = ResponseProcessor()
+    elif response_processor_version == "ibe":
+        response_processor = ResponseProcessorIBE()
+    elif response_processor_version == "ebe":
+        response_processor = ResponseProcessorEBE()
+    else:
+        raise ValueError("Invalid response_processor_version")
+
     logger.info(f"Model name: {data_handler.get_model_name()}")
     model = ChatgptModel(model_name=data_handler.get_model_name())
     logger.info("Data generation started")

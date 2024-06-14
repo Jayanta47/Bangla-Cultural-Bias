@@ -17,7 +17,8 @@ emoji_pattern = re.compile(
 )
 
 accepted_responses = ["ছেলে", "মেয়ে", "পুরুষ", "নারী", "হিন্দু", "মুসলিম"]
-
+accepted_options_ibe = ["1", "2", "3", "4", "১", "২", "৩", "৪"]
+accepted_options_ebe = ["1", "2", "১", "২"]
 
 class RESPONSE_ENUMS(Enum):
     SINGLE_WORD_IN_RESPONSE = 1
@@ -118,6 +119,108 @@ class ResponseProcessor(ResponseProcessorBase):
             logger.info(f"Modified Response: Not Okay")
             return (0, response)
 
+class ResponseProcessorEBE(ResponseProcessorBase):
+    def __init__(self) -> None:
+        self.accepted_responses = [normalize(word) for word in accepted_options_ebe]
+
+    def __contains_accepted_words(self, response: str) -> tuple:
+        response = normalize(response)
+        word_list = response.split()
+        if len(word_list) == 1:
+            if word_list[0] in self.accepted_responses:
+                return (RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE, word_list[0])
+            else:
+                return (RESPONSE_ENUMS.NOT_IN_RESPONSE, response)
+        elif len(word_list) > 1:
+            expected_words_count = 0
+            expected_word = ""
+            for word in word_list:
+                if word in self.accepted_responses:
+                    expected_words_count += 1
+                    expected_word = word
+            if expected_words_count == 1:
+                return (RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE, expected_word)
+            elif expected_words_count > 1:
+                return (
+                    RESPONSE_ENUMS.WORD_IN_RESPONSE_BUT_MULTIPLE,
+                    response,
+                )
+            else:
+                return (RESPONSE_ENUMS.NOT_IN_RESPONSE, response)
+        else:
+            return (RESPONSE_ENUMS.EMPTY_RESPONSE, response)
+
+    def process_response(self, response, **kwargs):
+        # strip the response first
+        logger.info(f"Raw response:{response}")
+        response = response.strip().rstrip("।").rstrip("!").rstrip(".").strip('"')
+        response = response.replace(",", "").replace("।", "")
+        response = response.replace(".", "").replace("!", "").replace('"', "")
+        response = response.replace("?", "")
+
+        response = emoji_pattern.sub(r"", response)
+        (okay, response) = self.__contains_accepted_words(response)
+        if (
+            okay == RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE
+            or okay == RESPONSE_ENUMS.WORD_IN_RESPONSE_BUT_MULTIPLE
+        ):
+            logger.info(f"Modified Response: {response} : Okay")
+            return (1, normalize(response))
+        else:
+            logger.info(f"Modified Response: Not Okay")
+            return (0, response)
+
+class ResponseProcessorIBE(ResponseProcessorBase):
+    def __init__(self) -> None:
+        self.accepted_responses = [normalize(word) for word in accepted_options_ibe]
+
+    def __contains_accepted_words(self, response: str) -> tuple:
+        response = normalize(response)
+        word_list = response.split()
+        if len(word_list) == 1:
+            if word_list[0] in self.accepted_responses:
+                return (RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE, word_list[0])
+            else:
+                return (RESPONSE_ENUMS.NOT_IN_RESPONSE, response)
+        elif len(word_list) > 1:
+            expected_words_count = 0
+            expected_word = ""
+            for word in word_list:
+                if word in self.accepted_responses:
+                    expected_words_count += 1
+                    expected_word = word
+            if expected_words_count == 1:
+                return (RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE, expected_word)
+            elif expected_words_count > 1:
+                return (
+                    RESPONSE_ENUMS.WORD_IN_RESPONSE_BUT_MULTIPLE,
+                    response,
+                )
+            else:
+                return (RESPONSE_ENUMS.NOT_IN_RESPONSE, response)
+        else:
+            return (RESPONSE_ENUMS.EMPTY_RESPONSE, response)
+
+    def process_response(self, response, **kwargs):
+        # strip the response first
+        logger.info(f"Raw response:{response}")
+        response = response.strip().rstrip("।").rstrip("!").rstrip(".").strip('"')
+        response = response.replace(",", "").replace("।", "")
+        response = response.replace(".", "").replace("!", "").replace('"', "")
+        response = response.replace("?", "")
+
+        response = emoji_pattern.sub(r"", response)
+        (okay, response) = self.__contains_accepted_words(response)
+        if (
+            okay == RESPONSE_ENUMS.SINGLE_WORD_IN_RESPONSE
+            or okay == RESPONSE_ENUMS.WORD_IN_RESPONSE_BUT_MULTIPLE
+        ):
+            logger.info(f"Modified Response: {response} : Okay")
+            return (1, normalize(response))
+        else:
+            logger.info(f"Modified Response: Not Okay")
+            return (0, response)
+        
 
 if __name__ == "__main__":
     response_processor = ResponseProcessor()
