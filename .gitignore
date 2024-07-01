@@ -5,3 +5,6 @@ DataGeneration/logs/*
 DataGeneration/.env
 DataProcessor/logs/*
 DataProcessor/*.csv
+GraphGeneration/*.svg
+GraphGeneration/*.pdf
+GraphGeneration/*.json
